@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}{{ investment.name }} · Investments{% endblock %}
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="text-sm font-medium text-brand-700"><a href="{% url 'investments:list' %}" class="hover:text-brand-800">Investments</a></p>
+      <h1 class="mt-1 text-2xl font-semibold text-slate-900">{{ investment.name }}</h1>
+      <p class="mt-1 text-sm text-slate-500">Started {{ investment.started_on }} · principal comes out of company cash; profits are tracked separately.</p>
+    </div>
+    <a href="{% url 'investments:investment_profit_export' pk=investment.pk %}" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Export CSV</a>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-3">
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"><p class="text-sm font-medium text-slate-500">Invested amount</p><p class="mt-2 text-3xl font-semibold text-slate-900">{{ investment.amount|pkr }}</p></div>
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"><p class="text-sm font-medium text-slate-500">Accumulated profit</p><p class="mt-2 text-3xl font-semibold {% if total_profit < 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">{{ total_profit|pkr }}</p></div>
+    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200"><p class="text-sm font-medium text-slate-500">Current value</p><p class="mt-2 text-3xl font-semibold text-slate-900">{{ current_value|pkr }}</p></div>
+  </div>
+
+  {% if investment.notes %}<div class="mt-4 rounded-2xl bg-white p-4 text-sm text-slate-600 shadow-sm ring-1 ring-slate-200">{{ investment.notes|linebreaksbr }}</div>{% endif %}
+
+  <section class="mt-6 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="border-b border-slate-200 px-6 py-4">
+      <h2 class="text-base font-semibold text-slate-900">Profit totals by month</h2>
+      <p class="mt-1 text-xs text-slate-500">This investment's profit rows rolled up by calendar month.</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Month</th><th class="px-6 py-3 text-right">Entries</th><th class="px-6 py-3 text-right">Total profit</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in monthly_profit_totals %}
+            <tr><td class="whitespace-nowrap px-6 py-3 font-medium text-slate-800">{{ row.label }}</td><td class="whitespace-nowrap px-6 py-3 text-right text-slate-600">{{ row.entries }}</td><td class="whitespace-nowrap px-6 py-3 text-right font-medium {% if row.total < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ row.total|pkr }}</td></tr>
+          {% empty %}
+            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500">No monthly totals yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  {% if can_manage %}
+    <form method="post" id="form-profit-add" action="{% url 'investments:profit_create' pk=investment.pk %}">{% csrf_token %}</form>
+    {% if edit_pk %}<form method="post" id="form-profit-edit" action="{% url 'investments:profit_update' pk=edit_pk %}">{% csrf_token %}</form>{% endif %}
+    {% for row in profits %}{% if not edit_pk or edit_pk != row.pk %}<form method="post" id="form-profit-delete-{{ row.pk }}" action="{% url 'investments:profit_delete' pk=row.pk %}" onsubmit="return confirm('Delete this profit row?');">{% csrf_token %}</form>{% endif %}{% endfor %}
+  {% endif %}
+
+  <section class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-6 py-4">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900">Profit history</h2>
+        <p class="mt-1 text-xs text-slate-500">Monthly rows are normalized to the first of the month; weekly rows are normalized to the Monday of that week.</p>
+      </div>
+      <div class="flex gap-2">{% for value, label in tabs %}<a href="?kind={{ value }}" class="rounded-full px-3 py-1.5 text-xs font-medium {% if kind == value %}bg-brand-600 text-white{% else %}bg-slate-100 text-slate-600 hover:bg-slate-200{% endif %}">{{ label }}</a>{% endfor %}</div>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-4 py-3">Type</th><th class="px-4 py-3">Period</th><th class="px-4 py-3 text-right">Profit</th><th class="px-4 py-3 text-right">Profit %</th><th class="px-4 py-3">Notes</th><th class="px-4 py-3 text-right">Actions</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in profits %}
+            {% if edit_pk == row.pk %}
+              <tr class="bg-amber-50/40"><td class="px-4 py-3">{{ edit_form.period_kind }}</td><td class="px-4 py-3">{{ edit_form.period_start }}</td><td class="px-4 py-3 text-right">{{ edit_form.amount }}</td><td class="px-4 py-3 text-right text-slate-400">Auto</td><td class="px-4 py-3">{{ edit_form.notes }}</td><td class="whitespace-nowrap px-4 py-3 text-right text-xs"><button type="submit" form="form-profit-edit" class="font-semibold text-emerald-600 hover:text-emerald-700">Save</button><a href="?kind={{ kind }}" class="ml-2 font-medium text-slate-500 hover:text-slate-700">Cancel</a></td></tr>
+            {% else %}
+              <tr class="hover:bg-slate-50/40"><td class="whitespace-nowrap px-4 py-3"><span class="inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">{{ row.get_period_kind_display }}</span></td><td class="whitespace-nowrap px-4 py-3 font-medium text-slate-800">{{ row.period_label }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium {% if row.amount < 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">{{ row.amount|pkr }}</td><td class="whitespace-nowrap px-4 py-3 text-right font-medium {% if row.profit_percent < 0 %}text-rose-600{% else %}text-slate-700{% endif %}">{{ row.profit_percent|floatformat:2 }}%</td><td class="px-4 py-3 text-slate-600">{{ row.notes|default:"—" }}</td><td class="whitespace-nowrap px-4 py-3 text-right text-xs">{% if can_manage %}<a href="?kind={{ kind }}&edit={{ row.pk }}" class="font-medium text-slate-600 hover:text-slate-800">Edit</a><button type="submit" form="form-profit-delete-{{ row.pk }}" class="ml-2 font-medium text-rose-600 hover:text-rose-700">Delete</button>{% else %}<span class="text-slate-400">View only</span>{% endif %}</td></tr>
+            {% endif %}
+          {% empty %}
+            <tr><td colspan="6" class="px-6 py-10 text-center text-slate-500">No profit rows for this filter yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if can_manage %}
+      <div class="border-t border-slate-200 bg-brand-50/40 px-4 py-3"><p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Add profit row</p><div class="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-end"><div class="sm:col-span-2"><label class="block text-xs text-slate-600">Type</label>{{ add_form.period_kind }}</div><div class="sm:col-span-2"><label class="block text-xs text-slate-600">Period start</label>{{ add_form.period_start }}</div><div class="sm:col-span-2"><label class="block text-xs text-slate-600">Profit</label>{{ add_form.amount }}</div><div class="sm:col-span-5"><label class="block text-xs text-slate-600">Notes</label>{{ add_form.notes }}</div><div class="sm:col-span-1"><button type="submit" form="form-profit-add" class="inline-flex w-full items-center justify-center rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-700">Add</button></div></div></div>
+    {% endif %}
+  </section>
+{% endblock %}

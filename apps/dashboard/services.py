@@ -14,6 +14,7 @@ from django.db.models import Sum
 from apps.accounts.models import Person
 from apps.company.models import Company
 from apps.earnings.models import Allocation, ReceiverKind
+from apps.investments.services import investment_summary
 from apps.periods.models import Month
 from apps.transfers.models import Transfer, TransferStatus
 
@@ -193,6 +194,7 @@ def dashboard_context() -> dict:
         "pending_total": pending_total,
         "pending_transfers": pending.select_related("month", "from_person", "to_person")[:10],
         "entity_income": entity_income_by_month(),
+        "investment_summary": investment_summary(),
     }
 
     if month is None:

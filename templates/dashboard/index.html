@@ -117,6 +117,37 @@
     </section>
   </div>
 
+  <section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <h2 class="text-base font-semibold text-slate-900">Investments snapshot</h2>
+        <p class="mt-1 text-xs text-slate-500">Company investments reduce cash when created; tracked profits stay separate until you choose to include them in the Company page portfolio view.</p>
+      </div>
+      <a href="{% url 'investments:list' %}" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Open investments</a>
+    </div>
+    <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-4">
+      <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Active investments</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ investment_summary.investment_count }}</p></div>
+      <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Invested capital</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ investment_summary.invested_total|pkr }}</p></div>
+      <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Accumulated profits</p><p class="mt-2 text-2xl font-semibold {% if investment_summary.accumulated_profit_total < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ investment_summary.accumulated_profit_total|pkr }}</p></div>
+      <div class="rounded-2xl bg-slate-50 p-4 ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tracked value</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ investment_summary.tracked_value_total|pkr }}</p></div>
+    </div>
+    {% if investment_summary.recent_profits %}
+      <ul class="mt-4 divide-y divide-slate-100 text-sm">
+        {% for row in investment_summary.recent_profits %}
+          <li class="flex items-center justify-between py-2">
+            <div>
+              <p class="font-medium text-slate-800"><a href="{% url 'investments:detail' pk=row.investment_id %}" class="hover:text-brand-700">{{ row.investment.name }}</a></p>
+              <p class="text-xs text-slate-500">{{ row.get_period_kind_display }} · {{ row.period_label }}</p>
+            </div>
+            <span class="text-sm font-semibold {% if row.amount < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ row.amount|pkr }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    {% else %}
+      <p class="mt-4 text-sm text-slate-500">No investment profit rows recorded yet.</p>
+    {% endif %}
+  </section>
+
   {% if entity_income.rows %}
     <section class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       <div class="flex flex-wrap items-end justify-between gap-2">

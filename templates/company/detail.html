@@ -8,12 +8,13 @@
       <p class="mt-1 text-sm text-slate-500">Cash position and recent movements.</p>
     </div>
     <div class="flex items-center gap-2">
+      <a href="{% url 'investments:list' %}" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Open investments</a>
       <a href="{% url 'company:edit' %}" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Edit details</a>
       <a href="{% url 'company:movement_create' %}" class="inline-flex items-center rounded-md bg-brand-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">Add movement</a>
     </div>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-3">
+  <div class="grid gap-4 lg:grid-cols-4">
     <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
       <p class="text-sm font-medium text-slate-500">Current balance</p>
       <p class="mt-2 text-3xl font-semibold text-slate-900">{{ company.current_balance|pkr }}</p>
@@ -27,6 +28,15 @@
       <p class="text-sm font-medium text-slate-500">Bank</p>
       <p class="mt-2 text-base font-medium text-slate-800">{{ company.bank_name|default:"—" }}</p>
       <p class="text-sm text-slate-500">{{ company.bank_account_title }}{% if company.bank_account_number %} · {{ company.bank_account_number }}{% endif %}</p>
+    </div>
+    <div id="portfolio-view" class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200" data-cash="{{ company.current_balance }}" data-invested="{{ invested_total }}" data-profit="{{ accumulated_profit_total }}">
+      <p class="text-sm font-medium text-slate-500">Portfolio view</p>
+      <p id="portfolio-total" class="mt-2 text-3xl font-semibold text-slate-900">{{ company.current_balance|pkr }}</p>
+      <div class="mt-3 space-y-2 text-xs text-slate-600">
+        <label class="flex items-center gap-2"><input id="toggle-invested" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> Include invested amount ({{ invested_total|pkr }})</label>
+        <label class="flex items-center gap-2"><input id="toggle-profit" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> Include accumulated profits ({{ accumulated_profit_total|pkr }})</label>
+      </div>
+      <p id="portfolio-note" class="mt-3 text-xs text-slate-500">Default view shows only cash left in the company.</p>
     </div>
   </div>
 
@@ -61,4 +71,29 @@
       </table>
     </div>
   </section>
+  <script>
+    (() => {
+      const root = document.getElementById('portfolio-view');
+      if (!root) return;
+      const invested = document.getElementById('toggle-invested');
+      const profit = document.getElementById('toggle-profit');
+      const total = document.getElementById('portfolio-total');
+      const note = document.getElementById('portfolio-note');
+      const cash = parseFloat(root.dataset.cash || '0');
+      const investedAmount = parseFloat(root.dataset.invested || '0');
+      const profitAmount = parseFloat(root.dataset.profit || '0');
+      const format = (n) => `${n < 0 ? '-' : ''}PKR ${Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+      const render = () => {
+        let value = cash;
+        const parts = ['Cash only'];
+        if (invested.checked) { value += investedAmount; parts.push('+ invested amount'); }
+        if (profit.checked) { value += profitAmount; parts.push('+ accumulated profits'); }
+        total.textContent = format(value);
+        note.textContent = parts.join(' ');
+      };
+      invested.addEventListener('change', render);
+      profit.addEventListener('change', render);
+      render();
+    })();
+  </script>
 {% endblock %}

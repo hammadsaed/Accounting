@@ -1,6 +1,9 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.db.models import Sum
 from django.shortcuts import redirect, render
+
+from apps.investments.models import Investment, InvestmentProfit
 
 from .forms import CompanyForm, ManualMovementForm
 from .models import Company
@@ -18,10 +21,17 @@ def _is_admin(user):
 def company_detail(request):
     company = Company.load()
     movements = company.movements.select_related("created_by")[:100]
+    invested_total = Investment.objects.aggregate(total=Sum("amount"))["total"] or 0
+    accumulated_profit_total = InvestmentProfit.objects.aggregate(total=Sum("amount"))["total"] or 0
     return render(
         request,
         "company/detail.html",
-        {"company": company, "movements": movements},
+        {
+            "company": company,
+            "movements": movements,
+            "invested_total": invested_total,
+            "accumulated_profit_total": accumulated_profit_total,
+        },
     )
 
 

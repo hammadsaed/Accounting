@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% load money %}
+{% block title %}Investments · Accounting{% endblock %}
+{% block content %}
+  <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <h1 class="text-2xl font-semibold text-slate-900">Investments</h1>
+      <p class="mt-1 text-sm text-slate-500">Company-owned investments. Creating one immediately reduces the company cash balance; profits are tracked separately.</p>
+    </div>
+    <a href="{% url 'investments:profit_export' %}" class="inline-flex items-center rounded-md border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Export CSV</a>
+  </div>
+
+  <div class="mb-6 grid grid-cols-1 gap-4 md:grid-cols-4">
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Active investments</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ summary.investment_count }}</p></div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Invested capital</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ summary.invested_total|pkr }}</p></div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Accumulated profits</p><p class="mt-2 text-2xl font-semibold {% if summary.accumulated_profit_total < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ summary.accumulated_profit_total|pkr }}</p></div>
+    <div class="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200"><p class="text-xs font-semibold uppercase tracking-wide text-slate-500">Tracked value</p><p class="mt-2 text-2xl font-semibold text-slate-900">{{ summary.tracked_value_total|pkr }}</p></div>
+  </div>
+
+  {% if can_manage %}
+    <form method="post" id="form-investment-add" action="{% url 'investments:create' %}">{% csrf_token %}</form>
+    {% if edit_pk %}<form method="post" id="form-investment-edit" action="{% url 'investments:update' pk=edit_pk %}">{% csrf_token %}</form>{% endif %}
+    {% for inv in investments %}{% if not edit_pk or edit_pk != inv.pk %}<form method="post" id="form-investment-delete-{{ inv.pk }}" action="{% url 'investments:delete' pk=inv.pk %}" onsubmit="return confirm('Delete this investment? This also removes its profit history and reverses the company cash movement.');">{% csrf_token %}</form>{% endif %}{% endfor %}
+  {% endif %}
+
+  <div class="rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+          <tr>
+            <th class="px-4 py-3">Started</th><th class="px-4 py-3">Investment</th><th class="px-4 py-3 text-right">Invested</th><th class="px-4 py-3 text-right">Accumulated profit</th><th class="px-4 py-3 text-right">Current value</th><th class="px-4 py-3 text-right">Actions</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for inv in investments %}
+            {% if edit_pk == inv.pk %}
+              <tr class="bg-amber-50/40">
+                <td class="px-4 py-3">{{ edit_form.started_on }}</td>
+                <td class="px-4 py-3">{{ edit_form.name }}</td>
+                <td class="px-4 py-3 text-right">{{ edit_form.amount }}</td>
+                <td class="px-4 py-3 text-right font-medium text-emerald-700">{{ inv.total_profit|pkr }}</td>
+                <td class="px-4 py-3 text-right font-semibold text-slate-900">{{ inv.current_value|pkr }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right text-xs"><button type="submit" form="form-investment-edit" class="font-semibold text-emerald-600 hover:text-emerald-700">Save</button><a href="{% url 'investments:list' %}" class="ml-2 font-medium text-slate-500 hover:text-slate-700">Cancel</a></td>
+              </tr>
+              <tr class="bg-amber-50/40"><td></td><td colspan="4" class="px-4 pb-3">{{ edit_form.notes }}</td><td></td></tr>
+            {% else %}
+              <tr class="hover:bg-slate-50/40">
+                <td class="whitespace-nowrap px-4 py-3 text-slate-700">{{ inv.started_on }}</td>
+                <td class="px-4 py-3"><a href="{% url 'investments:detail' pk=inv.pk %}" class="font-medium text-brand-600 hover:text-brand-700">{{ inv.name }}</a>{% if inv.notes %}<p class="mt-1 text-xs text-slate-500 line-clamp-2">{{ inv.notes }}</p>{% endif %}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right font-medium text-rose-600">{{ inv.amount|pkr }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right font-medium {% if inv.total_profit < 0 %}text-rose-600{% else %}text-emerald-600{% endif %}">{{ inv.total_profit|pkr }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right font-semibold text-slate-900">{{ inv.current_value|pkr }}</td>
+                <td class="whitespace-nowrap px-4 py-3 text-right text-xs">
+                  <a href="{% url 'investments:detail' pk=inv.pk %}" class="font-medium text-brand-600 hover:text-brand-700">Open</a>
+                  {% if can_manage %}<a href="?edit={{ inv.pk }}" class="ml-2 font-medium text-slate-600 hover:text-slate-800">Edit</a><button type="submit" form="form-investment-delete-{{ inv.pk }}" class="ml-2 font-medium text-rose-600 hover:text-rose-700">Delete</button>{% endif %}
+                </td>
+              </tr>
+            {% endif %}
+          {% empty %}
+            <tr><td colspan="6" class="px-6 py-10 text-center text-slate-500">No investments yet.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% if can_manage %}
+      <div class="border-t border-slate-200 bg-brand-50/40 px-4 py-3">
+        <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">Add a new investment</p>
+        <div class="grid grid-cols-1 gap-2 sm:grid-cols-12 sm:items-end">
+          <div class="sm:col-span-2"><label class="block text-xs text-slate-600">Started</label>{{ add_form.started_on }}</div>
+          <div class="sm:col-span-3"><label class="block text-xs text-slate-600">Name</label>{{ add_form.name }}</div>
+          <div class="sm:col-span-2"><label class="block text-xs text-slate-600">Invested amount</label>{{ add_form.amount }}</div>
+          <div class="sm:col-span-4"><label class="block text-xs text-slate-600">Notes</label>{{ add_form.notes }}</div>
+          <div class="sm:col-span-1"><button type="submit" form="form-investment-add" class="inline-flex w-full items-center justify-center rounded-md bg-brand-600 px-3 py-2 text-xs font-semibold text-white shadow-sm hover:bg-brand-700">Add</button></div>
+        </div>
+      </div>
+    {% endif %}
+  </div>
+
+  <section class="mt-6 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="border-b border-slate-200 px-6 py-4">
+      <h2 class="text-base font-semibold text-slate-900">Profit totals by month</h2>
+      <p class="mt-1 text-xs text-slate-500">All investment profit rows rolled up by calendar month. Weekly rows count toward the month containing that week's start date.</p>
+    </div>
+    <div class="overflow-x-auto">
+      <table class="min-w-full divide-y divide-slate-200 text-sm">
+        <thead class="bg-slate-50 text-left text-xs font-semibold uppercase tracking-wide text-slate-500"><tr><th class="px-6 py-3">Month</th><th class="px-6 py-3 text-right">Entries</th><th class="px-6 py-3 text-right">Total profit</th></tr></thead>
+        <tbody class="divide-y divide-slate-100">
+          {% for row in monthly_profit_totals %}
+            <tr>
+              <td class="whitespace-nowrap px-6 py-3 font-medium text-slate-800">{{ row.label }}</td>
+              <td class="whitespace-nowrap px-6 py-3 text-right text-slate-600">{{ row.entries }}</td>
+              <td class="whitespace-nowrap px-6 py-3 text-right font-medium {% if row.total < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ row.total|pkr }}</td>
+            </tr>
+          {% empty %}
+            <tr><td colspan="3" class="px-6 py-10 text-center text-slate-500">No profit rows yet — totals will appear here once weekly or monthly profits are recorded.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+{% endblock %}

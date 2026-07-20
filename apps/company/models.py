@@ -56,6 +56,7 @@ class MovementKind(models.TextChoices):
     EXPENSE = "expense", "Expense"
     RECEIPT = "receipt", "Receipt from settlement"
     PAYOUT = "payout", "Payout to person"
+    INVESTMENT = "investment", "Investment"
 
 
 class BalanceMovement(models.Model):

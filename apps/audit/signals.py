@@ -25,6 +25,8 @@ AUDITED_MODELS = (
     "expenses.Expense",
     "transfers.Transfer",
     "transfers.Payment",
+    "investments.Investment",
+    "investments.InvestmentProfit",
 )
 
 
