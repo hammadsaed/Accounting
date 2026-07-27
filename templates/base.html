@@ -38,20 +38,22 @@
               <span class="font-semibold text-slate-900">Accounting</span>
             </a>
             {% if user.is_authenticated %}
-              <div class="hidden gap-1 md:flex">
-                <a href="{% url 'dashboard' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Dashboard</a>
-                <a href="{% url 'periods:month_list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Months</a>
-                <a href="{% url 'earnings:list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Earnings</a>
-                <a href="{% url 'dashboard:entity_income' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Income</a>
-                <a href="{% url 'expenses:list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Expenses</a>
-                <a href="{% url 'transfers:list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Transfers</a>
-                <a href="{% url 'investments:list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Investments</a>
-                <a href="{% url 'company:detail' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Company</a>
-                <a href="{% url 'person_list' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">People</a>
-                {% if user.is_superuser or user|in_group:"Admin" %}
-                  <a href="{% url 'audit:log' %}" class="rounded-md px-3 py-1.5 text-sm font-medium text-slate-600 hover:bg-slate-100 hover:text-slate-900">Audit</a>
-                {% endif %}
-              </div>
+              {% with current_view=request.resolver_match.view_name current_namespace=request.resolver_match.namespace %}
+                <div class="hidden gap-1 md:flex">
+                  <a href="{% url 'dashboard' %}" {% if current_view == 'dashboard' or current_view == 'dashboard:report' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_view == 'dashboard' or current_view == 'dashboard:report' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Dashboard</a>
+                  <a href="{% url 'periods:month_list' %}" {% if current_namespace == 'periods' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'periods' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Months</a>
+                  <a href="{% url 'earnings:list' %}" {% if current_namespace == 'earnings' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'earnings' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Earnings</a>
+                  <a href="{% url 'dashboard:entity_income' %}" {% if current_view == 'dashboard:entity_income' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_view == 'dashboard:entity_income' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Income</a>
+                  <a href="{% url 'expenses:list' %}" {% if current_namespace == 'expenses' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'expenses' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Expenses</a>
+                  <a href="{% url 'transfers:list' %}" {% if current_namespace == 'transfers' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'transfers' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Transfers</a>
+                  <a href="{% url 'investments:list' %}" {% if current_namespace == 'investments' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'investments' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Investments</a>
+                  <a href="{% url 'company:detail' %}" {% if current_namespace == 'company' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'company' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Company</a>
+                  <a href="{% url 'person_list' %}" {% if current_view == 'person_list' or current_view == 'person_create' or current_view == 'person_edit' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_view == 'person_list' or current_view == 'person_create' or current_view == 'person_edit' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">People</a>
+                  {% if user.is_superuser or user|in_group:"Admin" %}
+                    <a href="{% url 'audit:log' %}" {% if current_namespace == 'audit' %}aria-current="page"{% endif %} class="rounded-md px-3 py-1.5 text-sm font-medium {% if current_namespace == 'audit' %}bg-brand-50 text-brand-700 ring-1 ring-brand-200{% else %}text-slate-600 hover:bg-slate-100 hover:text-slate-900{% endif %}">Audit</a>
+                  {% endif %}
+                </div>
+              {% endwith %}
             {% endif %}
           </div>
           {% if user.is_authenticated %}

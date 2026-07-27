@@ -42,6 +42,62 @@
 
   <section class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
     <div class="border-b border-slate-200 px-6 py-4">
+      <h2 class="text-base font-semibold text-slate-900">Default investment</h2>
+      <p class="mt-1 text-xs text-slate-500">Idle company cash is tracked in the background and posted as one profit entry on the same date each month after the start date. Real company movements still reduce or increase the amount before each monthly posting.</p>
+    </div>
+    <div class="grid gap-6 px-6 py-5 lg:grid-cols-2">
+      <div class="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+        <dl class="space-y-3 text-sm">
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900">{% if default_investment_summary.enabled %}Enabled{% else %}Disabled{% endif %}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Rate</dt><dd class="font-medium text-slate-900">{% if default_investment_summary.enabled %}{{ default_investment_summary.rate_percent }}% {{ default_investment_summary.rate_mode|lower }}{% else %}—{% endif %}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Start date</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.start_date|default:"—" }}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Auto profit earned</dt><dd class="font-medium {% if default_investment_summary.total_profit < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ default_investment_summary.total_profit|pkr }}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Profit months posted</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.posted_months }}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Current idle cash</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.current_idle_cash|pkr }}</dd></div>
+        </dl>
+      </div>
+      {% if can_manage %}
+        <form method="post" action="{% url 'company:default_investment_update' %}" class="rounded-2xl bg-white p-6 ring-1 ring-slate-200">
+          {% csrf_token %}
+
+          <div class="rounded-lg bg-slate-50 px-4 py-3 ring-1 ring-slate-200">
+            <label class="flex items-start gap-3">
+              {{ default_investment_form.default_investment_enabled }}
+              <div>
+                <span class="block text-sm font-medium text-slate-900">{{ default_investment_form.default_investment_enabled.label }}</span>
+                <span class="mt-0.5 block text-xs text-slate-500">Automatically post one monthly profit entry for leftover company cash.</span>
+              </div>
+            </label>
+            {% if default_investment_form.default_investment_enabled.errors %}<p class="mt-1 text-xs text-rose-600">{{ default_investment_form.default_investment_enabled.errors|join:", " }}</p>{% endif %}
+          </div>
+
+          <div class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ default_investment_form.default_investment_rate_mode.label }}</label>
+              {{ default_investment_form.default_investment_rate_mode }}
+              {% if default_investment_form.default_investment_rate_mode.errors %}<p class="mt-1 text-xs text-rose-600">{{ default_investment_form.default_investment_rate_mode.errors|join:", " }}</p>{% endif %}
+            </div>
+            <div>
+              <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ default_investment_form.default_investment_rate_percent.label }}</label>
+              {{ default_investment_form.default_investment_rate_percent }}
+              {% if default_investment_form.default_investment_rate_percent.errors %}<p class="mt-1 text-xs text-rose-600">{{ default_investment_form.default_investment_rate_percent.errors|join:", " }}</p>{% endif %}
+            </div>
+            <div class="sm:col-span-2">
+              <label class="mb-1 block text-xs font-semibold uppercase tracking-wide text-slate-500">{{ default_investment_form.default_investment_started_on.label }}</label>
+              {{ default_investment_form.default_investment_started_on }}
+              {% if default_investment_form.default_investment_started_on.errors %}<p class="mt-1 text-xs text-rose-600">{{ default_investment_form.default_investment_started_on.errors|join:", " }}</p>{% endif %}
+            </div>
+          </div>
+
+          <p class="mt-5 text-xs text-slate-500">Use annual or monthly percentage. Profit entries are rebuilt automatically whenever company cash movements change and are posted on the same date each month.</p>
+          <div class="mt-5 flex justify-end"><button type="submit" class="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">Save default investment</button></div>
+        </form>
+      {% endif %}
+    </div>
+  </section>
+
+  <section class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
+    <div class="border-b border-slate-200 px-6 py-4">
       <h2 class="text-base font-semibold text-slate-900">Recent movements</h2>
     </div>
     <div class="overflow-x-auto">

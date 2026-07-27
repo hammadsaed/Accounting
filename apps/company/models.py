@@ -22,6 +22,19 @@ class Company(models.Model):
     bank_account_title = models.CharField(max_length=120, blank=True)
     bank_account_number = models.CharField(max_length=64, blank=True)
     bank_iban = models.CharField("Bank IBAN", max_length=64, blank=True)
+    default_investment_enabled = models.BooleanField(default=False)
+    default_investment_rate_mode = models.CharField(
+        max_length=10,
+        choices=(("annual", "Annual %"), ("monthly", "Monthly %")),
+        default="annual",
+    )
+    default_investment_rate_percent = models.DecimalField(
+        max_digits=7,
+        decimal_places=4,
+        null=True,
+        blank=True,
+    )
+    default_investment_started_on = models.DateField(null=True, blank=True)
 
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -57,6 +70,7 @@ class MovementKind(models.TextChoices):
     RECEIPT = "receipt", "Receipt from settlement"
     PAYOUT = "payout", "Payout to person"
     INVESTMENT = "investment", "Investment"
+    DEFAULT_PROFIT = "default_profit", "Default investment profit"
 
 
 class BalanceMovement(models.Model):

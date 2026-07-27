@@ -5,8 +5,9 @@ from django.shortcuts import redirect, render
 
 from apps.investments.models import Investment, InvestmentProfit
 
-from .forms import CompanyForm, ManualMovementForm
+from .forms import CompanyForm, DefaultInvestmentForm, ManualMovementForm
 from .models import Company
+from .services import default_investment_summary
 
 
 def _is_admin(user):
@@ -31,6 +32,9 @@ def company_detail(request):
             "movements": movements,
             "invested_total": invested_total,
             "accumulated_profit_total": accumulated_profit_total,
+            "can_manage": _is_admin(request.user),
+            "default_investment_form": DefaultInvestmentForm(instance=company),
+            "default_investment_summary": default_investment_summary(company),
         },
     )
 
@@ -66,3 +70,19 @@ def movement_create(request):
     else:
         form = ManualMovementForm()
     return render(request, "company/movement_form.html", {"form": form})
+
+
+@login_required
+@user_passes_test(_is_admin)
+def default_investment_update(request):
+    company = Company.load()
+    form = DefaultInvestmentForm(request.POST, instance=company)
+    if form.is_valid():
+        form.save()
+        messages.success(
+            request,
+            "Default investment settings saved. Idle-cash profit has been rebuilt from the selected start date.",
+        )
+    else:
+        messages.error(request, "Could not save default investment settings.")
+    return redirect("company:detail")

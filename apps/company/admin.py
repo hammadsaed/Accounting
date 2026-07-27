@@ -10,6 +10,17 @@ class CompanyAdmin(admin.ModelAdmin):
         (None, {"fields": ("name",)}),
         ("Opening balance", {"fields": ("opening_balance", "opening_balance_date")}),
         ("Bank", {"fields": ("bank_name", "bank_account_title", "bank_account_number", "bank_iban")}),
+        (
+            "Default investment",
+            {
+                "fields": (
+                    "default_investment_enabled",
+                    "default_investment_rate_mode",
+                    "default_investment_rate_percent",
+                    "default_investment_started_on",
+                )
+            },
+        ),
     )
 
     def has_add_permission(self, request):
