@@ -37,7 +37,7 @@ class DefaultInvestmentTests(TestCase):
         self.assertEqual(self.company.current_balance, Decimal("1000.000"))
 
     @patch("apps.company.services.timezone.localdate", return_value=date(2026, 8, 1))
-    def test_default_investment_posts_monthly_profit_into_company_balance(self, _mock_today):
+    def test_default_investment_logs_monthly_profit_without_changing_company_balance(self, _mock_today):
         self.company.opening_balance = Decimal("1000.000")
         self.company.default_investment_enabled = True
         self.company.default_investment_rate_mode = "annual"
@@ -50,7 +50,7 @@ class DefaultInvestmentTests(TestCase):
         self.assertEqual(auto.happened_on, date(2026, 8, 1))
         self.assertEqual(auto.amount, Decimal("310.000"))
         self.company.refresh_from_db()
-        self.assertEqual(self.company.current_balance, Decimal("1310.000"))
+        self.assertEqual(self.company.current_balance, Decimal("1000.000"))
 
     @patch("apps.company.services.timezone.localdate", return_value=date(2026, 8, 1))
     def test_real_investment_reduces_idle_cash_before_monthly_profit(self, _mock_today):
@@ -75,7 +75,21 @@ class DefaultInvestmentTests(TestCase):
         )
         self.assertEqual(auto, [(date(2026, 8, 1), Decimal("250.000"))])
         self.company.refresh_from_db()
-        self.assertEqual(self.company.current_balance, Decimal("1050.000"))
+        self.assertEqual(self.company.current_balance, Decimal("800.000"))
+
+    @patch("apps.company.services.timezone.localdate", return_value=date(2026, 8, 1))
+    def test_company_page_portfolio_view_can_include_default_investment_profit(self, _mock_today):
+        self.company.opening_balance = Decimal("1000.000")
+        self.company.default_investment_enabled = True
+        self.company.default_investment_rate_mode = "annual"
+        self.company.default_investment_rate_percent = Decimal("365.0000")
+        self.company.default_investment_started_on = date(2026, 7, 1)
+        self.company.save()
+
+        r = self.client.get("/company/")
+        self.assertContains(r, "Include default investment profit (PKR 310.00)")
+        self.assertContains(r, 'data-default-profit="310.000"')
+        self.assertContains(r, "Tracked default profit")
 
     @patch("apps.company.services.timezone.localdate", return_value=date(2026, 7, 5))
     def test_company_page_allows_saving_default_investment_settings(self, _mock_today):
@@ -97,8 +111,9 @@ class DefaultInvestmentTests(TestCase):
 
         r = self.client.get("/company/")
         self.assertContains(r, "Default investment")
-        self.assertContains(r, "Auto profit earned")
+        self.assertContains(r, "Tracked default profit")
         self.assertContains(r, "Profit months posted")
+        self.assertContains(r, "Include default investment profit")
         self.assertContains(r, "Save default investment")
 
     def test_default_investment_checkbox_uses_checkbox_styling(self):

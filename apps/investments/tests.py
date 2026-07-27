@@ -114,6 +114,7 @@ class InvestmentFeatureTests(TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertContains(r, "Include invested amount")
         self.assertContains(r, "Include accumulated profits")
+        self.assertContains(r, "Include default investment profit")
 
     def test_profit_history_csv_exports(self):
         inv1 = Investment.objects.create(

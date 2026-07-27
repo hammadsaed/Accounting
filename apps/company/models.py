@@ -1,9 +1,8 @@
 """Company singleton and ledger of cash movements.
 
 The company's *cash balance* is the opening balance plus the signed sum of
-every ``BalanceMovement``. Movements are recorded for any real-world cash
-event: manual deposits, manual withdrawals, expenses paid, payments received
-from people settling earnings, and explicit adjustments.
+real cash movements. Automatically generated ``default_profit`` rows stay in
+the ledger for tracking/reporting, but they do not count as cash on hand.
 """
 from decimal import Decimal
 
@@ -58,7 +57,9 @@ class Company(models.Model):
 
     @property
     def current_balance(self) -> Decimal:
-        movements_total = self.movements.aggregate(total=Sum("amount"))["total"] or Decimal("0")
+        movements_total = self.movements.exclude(kind=MovementKind.DEFAULT_PROFIT).aggregate(
+            total=Sum("amount")
+        )["total"] or Decimal("0")
         return self.opening_balance + movements_total
 
 
@@ -76,10 +77,11 @@ class MovementKind(models.TextChoices):
 class BalanceMovement(models.Model):
     """Signed cash movement against the company account.
 
-    A positive ``amount`` increases the cash balance; a negative one decreases
-    it. The ``kind`` records *why* the movement occurred. ``source_*`` fields
-    optionally point at the originating object (e.g. an ``Expense``) so the
-    movement page can link back to it.
+    Most positive ``amount`` values increase the cash balance; a negative one
+    decreases it. ``DEFAULT_PROFIT`` rows are tracked in the ledger but do not
+    count toward ``Company.current_balance``. ``source_*`` fields optionally
+    point at the originating object (e.g. an ``Expense``) so the movement page
+    can link back to it.
     """
 
     company = models.ForeignKey(Company, on_delete=models.CASCADE, related_name="movements")

@@ -29,12 +29,13 @@
       <p class="mt-2 text-base font-medium text-slate-800">{{ company.bank_name|default:"—" }}</p>
       <p class="text-sm text-slate-500">{{ company.bank_account_title }}{% if company.bank_account_number %} · {{ company.bank_account_number }}{% endif %}</p>
     </div>
-    <div id="portfolio-view" class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200" data-cash="{{ company.current_balance }}" data-invested="{{ invested_total }}" data-profit="{{ accumulated_profit_total }}">
+    <div id="portfolio-view" class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200" data-cash="{{ company.current_balance }}" data-invested="{{ invested_total }}" data-profit="{{ accumulated_profit_total }}" data-default-profit="{{ default_investment_summary.total_profit }}">
       <p class="text-sm font-medium text-slate-500">Portfolio view</p>
       <p id="portfolio-total" class="mt-2 text-3xl font-semibold text-slate-900">{{ company.current_balance|pkr }}</p>
       <div class="mt-3 space-y-2 text-xs text-slate-600">
         <label class="flex items-center gap-2"><input id="toggle-invested" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> Include invested amount ({{ invested_total|pkr }})</label>
         <label class="flex items-center gap-2"><input id="toggle-profit" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> Include accumulated profits ({{ accumulated_profit_total|pkr }})</label>
+        <label class="flex items-center gap-2"><input id="toggle-default-profit" type="checkbox" class="rounded border-slate-300 text-brand-600 focus:ring-brand-500"> Include default investment profit ({{ default_investment_summary.total_profit|pkr }})</label>
       </div>
       <p id="portfolio-note" class="mt-3 text-xs text-slate-500">Default view shows only cash left in the company.</p>
     </div>
@@ -43,7 +44,7 @@
   <section class="mt-8 rounded-2xl bg-white shadow-sm ring-1 ring-slate-200">
     <div class="border-b border-slate-200 px-6 py-4">
       <h2 class="text-base font-semibold text-slate-900">Default investment</h2>
-      <p class="mt-1 text-xs text-slate-500">Idle company cash is tracked in the background and posted as one profit entry on the same date each month after the start date. Real company movements still reduce or increase the amount before each monthly posting.</p>
+      <p class="mt-1 text-xs text-slate-500">Idle company cash is tracked in the background and posted as one profit entry on the same date each month after the start date. These profit rows stay separate from company cash unless you choose to include them in the portfolio view.</p>
     </div>
     <div class="grid gap-6 px-6 py-5 lg:grid-cols-2">
       <div class="rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
@@ -51,7 +52,7 @@
           <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Status</dt><dd class="font-medium text-slate-900">{% if default_investment_summary.enabled %}Enabled{% else %}Disabled{% endif %}</dd></div>
           <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Rate</dt><dd class="font-medium text-slate-900">{% if default_investment_summary.enabled %}{{ default_investment_summary.rate_percent }}% {{ default_investment_summary.rate_mode|lower }}{% else %}—{% endif %}</dd></div>
           <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Start date</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.start_date|default:"—" }}</dd></div>
-          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Auto profit earned</dt><dd class="font-medium {% if default_investment_summary.total_profit < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ default_investment_summary.total_profit|pkr }}</dd></div>
+          <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Tracked default profit</dt><dd class="font-medium {% if default_investment_summary.total_profit < 0 %}text-rose-600{% else %}text-emerald-700{% endif %}">{{ default_investment_summary.total_profit|pkr }}</dd></div>
           <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Profit months posted</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.posted_months }}</dd></div>
           <div class="flex items-center justify-between gap-4"><dt class="text-slate-500">Current idle cash</dt><dd class="font-medium text-slate-900">{{ default_investment_summary.current_idle_cash|pkr }}</dd></div>
         </dl>
@@ -65,7 +66,7 @@
               {{ default_investment_form.default_investment_enabled }}
               <div>
                 <span class="block text-sm font-medium text-slate-900">{{ default_investment_form.default_investment_enabled.label }}</span>
-                <span class="mt-0.5 block text-xs text-slate-500">Automatically post one monthly profit entry for leftover company cash.</span>
+                <span class="mt-0.5 block text-xs text-slate-500">Automatically log one monthly profit entry for leftover company cash.</span>
               </div>
             </label>
             {% if default_investment_form.default_investment_enabled.errors %}<p class="mt-1 text-xs text-rose-600">{{ default_investment_form.default_investment_enabled.errors|join:", " }}</p>{% endif %}
@@ -89,7 +90,7 @@
             </div>
           </div>
 
-          <p class="mt-5 text-xs text-slate-500">Use annual or monthly percentage. Profit entries are rebuilt automatically whenever company cash movements change and are posted on the same date each month.</p>
+          <p class="mt-5 text-xs text-slate-500">Use annual or monthly percentage. Profit entries are rebuilt automatically whenever company cash movements change, but they stay separate from the cash balance unless you include them in portfolio view.</p>
           <div class="mt-5 flex justify-end"><button type="submit" class="inline-flex items-center rounded-md bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-brand-700">Save default investment</button></div>
         </form>
       {% endif %}
@@ -133,22 +134,26 @@
       if (!root) return;
       const invested = document.getElementById('toggle-invested');
       const profit = document.getElementById('toggle-profit');
+      const defaultProfit = document.getElementById('toggle-default-profit');
       const total = document.getElementById('portfolio-total');
       const note = document.getElementById('portfolio-note');
       const cash = parseFloat(root.dataset.cash || '0');
       const investedAmount = parseFloat(root.dataset.invested || '0');
       const profitAmount = parseFloat(root.dataset.profit || '0');
+      const defaultProfitAmount = parseFloat(root.dataset.defaultProfit || '0');
       const format = (n) => `${n < 0 ? '-' : ''}PKR ${Math.abs(n).toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
       const render = () => {
         let value = cash;
         const parts = ['Cash only'];
         if (invested.checked) { value += investedAmount; parts.push('+ invested amount'); }
         if (profit.checked) { value += profitAmount; parts.push('+ accumulated profits'); }
+        if (defaultProfit.checked) { value += defaultProfitAmount; parts.push('+ default investment profit'); }
         total.textContent = format(value);
         note.textContent = parts.join(' ');
       };
       invested.addEventListener('change', render);
       profit.addEventListener('change', render);
+      defaultProfit.addEventListener('change', render);
       render();
     })();
   </script>
